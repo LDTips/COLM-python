@@ -7,14 +7,23 @@ from functools import reduce
 
 
 def rho(x, st):
-    y = x ^ (GF(3) * GF(st))
-    st_prim = x ^ (GF(2) * GF(st))
+    gfmult1 = long_to_bytes(
+        (GF(3) * GF(bytes_to_long(st))).item()
+    )
+    gfmult2 = long_to_bytes(
+        (GF(2) * GF(bytes_to_long(st))).item()
+    )
+    y = strxor(x, gfmult1)
+    st_prim = strxor(x, gfmult2)
     return y, st_prim
 
 
 def rho_inverse(y, st):
-    x = y ^ (GF(3) * GF(st))
-    st_prim = y ^ st
+    gfmult = long_to_bytes(
+        (GF(3) * GF(bytes_to_long(st))).item()
+    )
+    x = strxor(y, gfmult)
+    st_prim = strxor(y, st)
     return x, st_prim
 
 
@@ -30,24 +39,25 @@ def delta_A(i, L, A_star_len, a):
 
 
 def delta_M(i, L, M_star_len, l):
-    if i in (l, l+1) and M_star_len == 128:
+    if i in (l, l+1) and M_star_len == 16:
         return long_to_bytes(
-            (GF(7) * GF(2)**(i-1) * bytes_to_long(L)).item()
+            (GF(7) * GF(2)**(i-1) * GF(bytes_to_long(L))).item()
         )
-    elif i in (l, l+1) and M_star_len < 128:
+    elif i in (l, l+1) and M_star_len < 16:
         return long_to_bytes(
-            (GF(7)**2 * GF(2) ** (i - 1) * bytes_to_long(L)).item()
+            (GF(7)**2 * GF(2) ** (i - 1) * GF(bytes_to_long(L))).item()
         )
     else:
         return long_to_bytes(
-            (GF(2)**i * bytes_to_long(L)).item()
+            (GF(2)**i * GF(bytes_to_long(L))).item()
         )
 
 
 def delta_C(i, L, M_star_len, l):
     # Using the fact that delta_C = GF(3)**2 delta_M
+    deltaM = delta_M(i, L, M_star_len, l)
     return long_to_bytes(
-        GF(3)**2 * bytes_to_long(delta_M(i, L, M_star_len, l))
+        (GF(3)**2 * GF(bytes_to_long(deltaM))).item()
     )
 
 
@@ -147,4 +157,7 @@ if __name__ == "__main__":
 
     L = gen_subkey(k)
     IV = generate_iv(k, associated_data, param, npub, L)
+    C = generate_tagged_ct(k, plaintext, IV)
+    C = b''.join(C)
+    pass
 
