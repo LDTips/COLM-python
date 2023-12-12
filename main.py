@@ -140,6 +140,41 @@ def generate_tagged_ct(k, M, IV):
             strxor(M[i], delta_M(i, L, M_star_len, l))
         )
 
+    # Step 3 - X
+    X = []
+    cipher = AES.new(k, AES.MODE_ECB)
+    for i in range(l):
+        X.append(
+            cipher.encrypt(MM[i])
+        )
+
+    # Step 4 - Y and W
+    Y, W = [], []
+    x, st = rho(X[0], W_0)
+    Y.append(x)
+    W.append(st)
+
+    for i in range(1, l):
+        x, st = rho(X[1], W[i-1])
+        Y.append(x)
+        W.append(st)
+
+    # Step 5 - CC
+    CC = []
+    for i in range(l):
+        CC.append(
+            cipher.encrypt(Y[i])
+        )
+
+    # Step 6 - C (ciphertext)
+    C = []
+    for i in range(l):
+        C.append(
+            strxor(CC[i], delta_C(i, L, M_star_len, l))
+        )
+
+    return C
+
 
 if __name__ == "__main__":
     # AES block_size is usually 16?
