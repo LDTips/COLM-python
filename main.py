@@ -234,9 +234,37 @@ def decrypt_tagged_ct(k, C, IV, L):
         )
 
     # Step 7 - Add M[l+1]
-    M[-1] = reduce(lambda x, y: strxor(x, y), M)
-    M[-1] = remove_onezero_pad(M[-1])
-    return M, M[-1]
+    M_star = reduce(lambda x, y: strxor(x, y), M)
+    M_last = M[-1]
+    M[-1] = remove_onezero_pad(M_star)
+
+    return M, M_last, W[-1]
+
+def verify_message(k, M, M_last, W_last, C_last, L):
+    M_last_len = len(M[-1])
+    l = len(M) + 1
+    # Step 1 - MM
+    MM = strxor(M_last, delta_M(l, L, M_last_len, l))
+
+    # Step 2 - X
+    cipher = AES.new(k, AES.MODE_ECB)
+    X = cipher.encrypt(MM)
+
+    # Step 3 - Y and W
+    Y, W = rho(X, W_last)
+
+    # Step 4 - CC
+    CC = cipher.encrypt(Y)
+
+    # Step 5 - C_prim
+    C_prim = strxor(CC, delta_C(l, L, M_last_len, l))
+    C_prim = C_prim[:M_last_len]
+
+    if C_prim == C_last:
+        return "Verification successful"
+    else:
+        return "Verification failed"
+
 
 if __name__ == "__main__":
     # AES block_size is usually 16?
@@ -254,12 +282,15 @@ if __name__ == "__main__":
     L = gen_subkey(k)
     IV = generate_iv(k, associated_data, param, npub, L)
     C = generate_tagged_ct(k, plaintext, IV, L)
+    C_last = C[-1]
     ciphertext = b''.join(C)
     print(ciphertext)
 
-    M, M_last = decrypt_tagged_ct(k, ciphertext, IV, L)
+    M, M_last, W_last = decrypt_tagged_ct(k, ciphertext, IV, L)
     message = b''.join(M)
     print(message)
-    print(M_last)
+
+    print(verify_message(k, M, M_last, W_last, C_last, L))
+
     pass
 
