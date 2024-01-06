@@ -284,7 +284,7 @@ if __name__ == "__main__":
     C = generate_tagged_ct(k, plaintext, IV, L)
     C_last = C[-1]
     ciphertext = b''.join(C)
-    print(ciphertext)
+    print(bytes_to_long(ciphertext))
 
     M, M_last, W_last = decrypt_tagged_ct(k, ciphertext, IV, L)
     message = b''.join(M)
